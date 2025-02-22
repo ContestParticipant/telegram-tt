@@ -1,0 +1,113 @@
+.rich-text-input {
+  position: relative;
+  flex-grow: 1;
+  --base-height: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  .form-control {
+    white-space: pre-wrap;
+
+    &.touched {
+      & ~ .placeholder-text {
+        opacity: 0;
+        transform: translateX(1rem);
+      }
+    }
+
+    &.focus-disabled {
+      pointer-events: none;
+    }
+
+    &.single-line {
+      white-space: nowrap;
+      overflow: hidden;
+
+      br {
+        display: none;
+      }
+
+      * {
+        display: inline;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .forced-placeholder,
+  .placeholder-text {
+    position: absolute;
+
+    --border-width: 1px;
+    --parent-horizontal-padding: calc(1.1875rem - var(--border-width));
+    top: calc(0.75rem - var(--border-width) + 2px);
+    left: var(--parent-horizontal-padding);
+
+    color: var(--color-placeholders);
+    pointer-events: none;
+    unicode-bidi: plaintext;
+    text-align: initial;
+    font-size: var(--composer-text-size, 1rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+  }
+
+  .forced-placeholder {
+    z-index: var(--z-below);
+  }
+
+  &[dir="rtl"] {
+    .placeholder-text {
+      left: auto;
+      right: var(--parent-horizontal-padding);
+    }
+
+    .touched ~ .placeholder-text {
+      transform: translateX(-1rem);
+    }
+  }
+
+  .text-entity-link {
+    color: var(--color-links) !important;
+    cursor: var(--custom-cursor, default);
+    text-decoration: none;
+
+    &:hover,
+    &:active,
+    &:visited {
+      text-decoration: underline !important;
+    }
+  }
+
+  .spoiler {
+    background-image: url("../../../assets/spoiler-dots-black.png");
+    background-size: auto min(100%, 1.125rem);
+    border-radius: 0.5rem;
+    padding: 0 0.3125rem 0.125rem 0.3125rem;
+    text-shadow:
+      -2px -2px 0 var(--color-background),
+      2px -2px 0 var(--color-background),
+      -2px 2px 0 var(--color-background),
+      2px 2px 0 var(--color-background);
+  }
+
+  html.theme-dark & .spoiler {
+    background-image: url("../../../assets/spoiler-dots-white.png");
+  }
+
+  .clone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -10;
+    unicode-bidi: plaintext;
+    text-align: initial;
+  }
+}

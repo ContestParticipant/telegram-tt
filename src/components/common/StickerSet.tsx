@@ -29,7 +29,6 @@ import { useIsIntersecting } from '../../hooks/useIntersectionObserver';
 import useLastCallback from '../../hooks/useLastCallback';
 import useMediaTransitionDeprecated from '../../hooks/useMediaTransitionDeprecated';
 import useOldLang from '../../hooks/useOldLang';
-import useResizeObserver from '../../hooks/useResizeObserver';
 import useWindowSize from '../../hooks/window/useWindowSize';
 
 import Button from '../ui/Button';
@@ -37,6 +36,7 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import Icon from './icons/Icon';
 import ReactionEmoji from './reactions/ReactionEmoji';
 import StickerButton from './StickerButton';
+import StickerSetContainer, { getItemsPerRowFallback } from './StickerSetContainer';
 
 import grey from '../../assets/icons/forumTopic/grey.svg';
 
@@ -74,12 +74,6 @@ type OwnProps = {
   onContextMenuClose?: NoneToVoidFunction;
   onContextMenuClick?: NoneToVoidFunction;
 };
-
-const ITEMS_PER_ROW_FALLBACK = 8;
-const ITEMS_MOBILE_PER_ROW_FALLBACK = 7;
-const ITEMS_MINI_MOBILE_PER_ROW_FALLBACK = 6;
-const MOBILE_WIDTH_THRESHOLD_PX = 440;
-const MINI_MOBILE_WIDTH_THRESHOLD_PX = 362;
 
 const StickerSet: FC<OwnProps> = ({
   stickerSet,
@@ -146,7 +140,6 @@ const StickerSet: FC<OwnProps> = ({
   const shouldRender = isNearActive || isIntersecting;
 
   const stickerMarginPx = isMobile ? 8 : 4;
-  const emojiMarginPx = isMobile ? 8 : 10;
   const emojiVerticalMarginPx = isMobile ? 8 : 4;
   const isRecent = stickerSet.id === RECENT_SYMBOL_SET_ID;
   const isFavorite = stickerSet.id === FAVORITE_SYMBOL_SET_ID;
@@ -202,27 +195,7 @@ const StickerSet: FC<OwnProps> = ({
   });
 
   const itemSize = isEmoji ? EMOJI_SIZE_PICKER : STICKER_SIZE_PICKER;
-  const margin = isEmoji ? emojiMarginPx : stickerMarginPx;
   const verticalMargin = isEmoji ? emojiVerticalMarginPx : stickerMarginPx;
-
-  const calculateItemsPerRow = useLastCallback((width: number) => {
-    if (!width) {
-      return getItemsPerRowFallback(windowWidth);
-    }
-
-    return Math.floor((width + margin) / (itemSize + margin));
-  });
-
-  const handleResize = useLastCallback((entry: ResizeObserverEntry) => {
-    setItemsPerRow(calculateItemsPerRow(entry.contentRect.width));
-  });
-
-  useResizeObserver(ref, handleResize);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    setItemsPerRow(calculateItemsPerRow(ref.current.clientWidth));
-  }, [calculateItemsPerRow]);
 
   useEffect(() => {
     if (shouldRender && !stickerSet.stickers?.length && !stickerSet.reactions?.length && stickerSet.accessHash) {
@@ -267,13 +240,17 @@ const StickerSet: FC<OwnProps> = ({
   }, [isLocked, lang, isInstalled]);
 
   return (
-    <div
-      ref={ref}
+    <StickerSetContainer
+      refOverride={ref}
       key={stickerSet.id}
-      id={`${idPrefix}-${index}`}
-      className={
-        buildClassName('symbol-set', isLocked && 'symbol-set-locked')
-      }
+      index={index}
+      idPrefix={idPrefix}
+      isSavedMessages={isSavedMessages}
+      isCurrentUserPremium={isCurrentUserPremium}
+      isChatEmojiSet={isChatEmojiSet}
+      setItemsPerRow={setItemsPerRow}
+      isLocked={isLocked}
+      isEmoji={isEmoji}
     >
       {!shouldHideHeader && (
         <div className="symbol-set-header">
@@ -424,16 +401,8 @@ const StickerSet: FC<OwnProps> = ({
           confirmIsDestructive
         />
       )}
-    </div>
+    </StickerSetContainer>
   );
 };
 
 export default memo(StickerSet);
-
-function getItemsPerRowFallback(windowWidth: number): number {
-  return windowWidth > MOBILE_WIDTH_THRESHOLD_PX
-    ? ITEMS_PER_ROW_FALLBACK
-    : (windowWidth < MINI_MOBILE_WIDTH_THRESHOLD_PX
-      ? ITEMS_MINI_MOBILE_PER_ROW_FALLBACK
-      : ITEMS_MOBILE_PER_ROW_FALLBACK);
-}

@@ -26,12 +26,12 @@ export default {
   "LoginSelectCountryTitle": "Country",
   "CountryNone": "Country not found",
   "PleaseEnterPassword": "Enter your new password",
-  "ErrorPhoneNumberInvalid": "Invalid phone number, please try again.",
-  "ErrorCodeInvalid": "Invalid code, please try again.",
-  "ErrorIncorrectPassword": "Invalid password, please try again.",
-  "ErrorPasswordFlood": "Too many attempts, please try again later.",
-  "ErrorPhoneBanned": "This phone number is banned.",
-  "ErrorFloodTime": "Too many attempts, please try again in {time}.",
+  "ErrorPhoneNumberInvalid": "Invalid phone number, please try again",
+  "ErrorCodeInvalid": "Invalid code, please try again",
+  "ErrorIncorrectPassword": "Invalid password, please try again",
+  "ErrorPasswordFlood": "Too many attempts, please try again later",
+  "ErrorPhoneBanned": "This phone number is banned",
+  "ErrorFloodTime": "Too many attempts, please try again in {time}",
   "ErrorUnexpected": "Unexpected error",
   "ErrorUnexpectedMessage": "Unexpected error: {error}"
 } as Record<LangKey, LangPackStringValue>;

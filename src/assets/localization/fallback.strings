@@ -1602,3 +1602,7 @@
 "CheckPasswordTitle" = "Enter Password";
 "CheckPasswordPlaceholder" = "Password";
 "CheckPasswordDescription" = "Please enter your password to continue.";
+"QuoteCollapsed" = "Quote text will be collapsed";
+"QuoteVisible" = "Quote text will be fully visible";
+"FilterEnableAnimations" = "Enable animations";
+"FilterDisableAnimations" = "Disable animations";

@@ -9,6 +9,8 @@ import {
 } from '../../../../lib/fasterdom/fasterdom';
 import animateScroll from '../../../../util/animateScroll';
 
+import { toNextPositionGlobal } from '../../../main/BackgroundGradient';
+
 // This is used when the viewport was replaced.
 const BOTTOM_FOCUS_OFFSET = 500;
 const RELOCATED_FOCUS_OFFSET = SCROLL_MAX_DISTANCE;
@@ -51,6 +53,7 @@ export default function useFocusMessage({
         const maxDistance = focusDirection !== undefined
           ? (isToBottom ? BOTTOM_FOCUS_OFFSET : RELOCATED_FOCUS_OFFSET) : undefined;
 
+        toNextPositionGlobal();
         const result = animateScroll({
           container: messagesContainer,
           element: elementRef.current!,

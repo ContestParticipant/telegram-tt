@@ -72,6 +72,9 @@ export type PerformanceType = {
 export interface IThemeSettings {
   background?: string;
   backgroundColor?: string;
+  backgroundColors?: string[];
+  backgroundIsMask?: boolean;
+  backgroundOpacity?: number;
   patternColor?: string;
   isBlurred?: boolean;
 }

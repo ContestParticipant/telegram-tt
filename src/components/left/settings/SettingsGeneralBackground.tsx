@@ -94,9 +94,16 @@ const SettingsGeneralBackground: FC<OwnProps & StateProps> = ({
     });
   }, [setThemeSettings, theme]);
 
-  const handleWallPaperSelect = useCallback((slug: string) => {
-    setThemeSettings({ theme: themeRef.current!, background: slug });
-    const currentWallpaper = loadedWallpapers && loadedWallpapers.find((wallpaper) => wallpaper.slug === slug);
+  const handleWallPaperSelect = useCallback((id: string, opacity: number, isMask: boolean, colors?: string[]) => {
+    setThemeSettings({
+      theme: themeRef.current!,
+      background: id,
+      backgroundOpacity: opacity,
+      backgroundColors: colors,
+      backgroundIsMask: isMask,
+    });
+    const currentWallpaper = loadedWallpapers
+      && loadedWallpapers.find((wallpaper) => wallpaper.id.toString() === id);
     if (currentWallpaper?.document.thumbnail) {
       getAverageColor(currentWallpaper.document.thumbnail.dataUri)
         .then((color) => {
@@ -155,10 +162,11 @@ const SettingsGeneralBackground: FC<OwnProps & StateProps> = ({
         <div className="settings-wallpapers">
           {loadedWallpapers.map((wallpaper) => (
             <WallpaperTile
-              key={wallpaper.slug}
+              key={wallpaper.id}
               wallpaper={wallpaper}
               theme={theme}
-              isSelected={background === wallpaper.slug}
+              isSelected={background === wallpaper.slug // backward compatibility
+                  || background === wallpaper.id}
               onClick={handleWallPaperSelect}
             />
           ))}

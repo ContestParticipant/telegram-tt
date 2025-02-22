@@ -3,6 +3,7 @@ import { ApiMessageEntityTypes } from '../../../../api/types';
 import { DEBUG } from '../../../../config';
 import cleanDocsHtml from '../../../../lib/cleanDocsHtml';
 import { ENTITY_CLASS_BY_NODE_NAME } from '../../../../util/parseHtmlAsFormattedText';
+import { getSelectedBlockquote } from './getSelectedBlockquote';
 
 const STYLE_TAG_REGEX = /<style>(.*?)<\/style>/gs;
 
@@ -53,6 +54,20 @@ export function preparePastedHtml(html: string) {
         break;
     }
   });
+
+  if (getSelectedBlockquote()) {
+    fragment.querySelectorAll('blockquote').forEach((v) => v.remove());
+  }
+  let found = true;
+  do {
+    found = false;
+    for (const blockquote of fragment.querySelectorAll('blockquote')) {
+      for (const nested of blockquote.querySelectorAll('blockquote')) {
+        found = true;
+        nested.replaceWith(...nested.childNodes);
+      }
+    }
+  } while (found);
 
   return fragment.innerHTML.trimEnd();
 }

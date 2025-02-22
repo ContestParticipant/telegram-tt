@@ -652,6 +652,7 @@ function processEntityAsHtml(
     case ApiMessageEntityTypes.Blockquote:
       return `<blockquote
         class="blockquote"
+        data-collapsed="${entity.canCollapse ? 1 : 0}"
         data-entity-type="${ApiMessageEntityTypes.Blockquote}"
         >${renderedContent}</blockquote>`;
     default:

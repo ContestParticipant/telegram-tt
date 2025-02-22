@@ -1,6 +1,10 @@
 import type { FC } from '../../lib/teact/teact';
 import React, {
-  memo, useEffect, useMemo, useRef, useSignal, useState,
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from '../../lib/teact/teact';
 import { getActions, getGlobal, withGlobal } from '../../global';
 
@@ -45,6 +49,7 @@ import { MAIN_THREAD_ID } from '../../api/types';
 import {
   BASE_EMOJI_KEYWORD_LANG,
   DEFAULT_MAX_MESSAGE_LENGTH,
+  EDITABLE_INPUT_ID,
   EDITABLE_INPUT_MODAL_ID,
   HEART_REACTION,
   MAX_UPLOAD_FILEPART_SIZE,
@@ -102,12 +107,10 @@ import buildClassName from '../../util/buildClassName';
 import { formatMediaDuration, formatVoiceRecordDuration } from '../../util/dates/dateFormat';
 import { processDeepLink } from '../../util/deeplink';
 import { tryParseDeepLink } from '../../util/deepLinkParser';
-import deleteLastCharacterOutsideSelection from '../../util/deleteLastCharacterOutsideSelection';
 import { processMessageInputForCustomEmoji } from '../../util/emoji/customEmojiManager';
 import focusEditableElement from '../../util/focusEditableElement';
 import { MEMO_EMPTY_ARRAY } from '../../util/memo';
 import parseHtmlAsFormattedText from '../../util/parseHtmlAsFormattedText';
-import { insertHtmlInSelection } from '../../util/selection';
 import { getServerTime } from '../../util/serverTime';
 import { IS_IOS, IS_VOICE_RECORDING_SUPPORTED } from '../../util/windowEnvironment';
 import windowSize from '../../util/windowSize';
@@ -145,6 +148,8 @@ import useInlineBotTooltip from '../middle/composer/hooks/useInlineBotTooltip';
 import useMentionTooltip from '../middle/composer/hooks/useMentionTooltip';
 import useStickerTooltip from '../middle/composer/hooks/useStickerTooltip';
 import useVoiceRecording from '../middle/composer/hooks/useVoiceRecording';
+import { useEditorState } from './hooks/useEditorState';
+import { useShowCustomEmojiPremiumNotification } from './hooks/useShowCustomEmojiPremiumNotification';
 
 import AttachmentModal from '../middle/composer/AttachmentModal.async';
 import AttachMenu from '../middle/composer/AttachMenu';
@@ -422,7 +427,14 @@ const Composer: FC<OwnProps & StateProps> = ({
   // eslint-disable-next-line no-null/no-null
   const storyReactionRef = useRef<HTMLButtonElement>(null);
 
-  const [getHtml, setHtml] = useSignal('');
+  const {
+    getHtml,
+    setHtml,
+    overwrite,
+    htmlOverwrite,
+    originalSetHtml,
+  } = useEditorState();
+
   const [isMounted, setIsMounted] = useState(false);
   const getSelectionRange = useGetSelectionRange(editableInputCssSelector);
   const lastMessageSendTimeSeconds = useRef<number>();
@@ -448,8 +460,6 @@ const Composer: FC<OwnProps & StateProps> = ({
   const isSentStoryReactionHeart = sentStoryReaction && isSameReaction(sentStoryReaction, HEART_REACTION);
 
   useEffect(processMessageInputForCustomEmoji, [getHtml]);
-
-  const customEmojiNotificationNumber = useRef(0);
 
   const [requestCalendar, calendar] = useSchedule(
     isInMessageList && canScheduleUntilOnline,
@@ -515,7 +525,6 @@ const Composer: FC<OwnProps & StateProps> = ({
 
   const insertHtmlAndUpdateCursor = useLastCallback((newHtml: string, inInputId: string = editableInputId) => {
     if (inInputId === editableInputId && isComposerBlocked) return;
-    const selection = window.getSelection()!;
     let messageInput: HTMLDivElement;
     if (inInputId === editableInputId) {
       messageInput = document.querySelector<HTMLDivElement>(editableInputCssSelector)!;
@@ -523,16 +532,8 @@ const Composer: FC<OwnProps & StateProps> = ({
       messageInput = document.getElementById(inInputId) as HTMLDivElement;
     }
 
-    if (selection.rangeCount) {
-      const selectionRange = selection.getRangeAt(0);
-      if (isSelectionInsideInput(selectionRange, inInputId)) {
-        insertHtmlInSelection(newHtml);
-        messageInput.dispatchEvent(new Event('input', { bubbles: true }));
-        return;
-      }
-    }
-
-    setHtml(`${getHtml()}${newHtml}`);
+    document.execCommand('insertHTML', false, newHtml);
+    messageInput.dispatchEvent(new Event('input', { bubbles: true }));
 
     // If selection is outside of input, set cursor at the end of input
     requestNextMutation(() => {
@@ -640,7 +641,6 @@ const Composer: FC<OwnProps & StateProps> = ({
     Boolean(isReady && isOnActiveTab && (isInStoryViewer || isForCurrentMessageList)
       && shouldSuggestStickers && !hasAttachments),
     getHtml,
-    setHtml,
     undefined,
     recentEmojis,
     baseEmojiKeywords,
@@ -655,7 +655,6 @@ const Composer: FC<OwnProps & StateProps> = ({
     Boolean(isReady && isOnActiveTab && (isInStoryViewer || isForCurrentMessageList)
       && shouldSuggestCustomEmoji && !hasAttachments),
     getHtml,
-    setHtml,
     getSelectionRange,
     inputRef,
     customEmojiForEmoji,
@@ -683,7 +682,6 @@ const Composer: FC<OwnProps & StateProps> = ({
   } = useMentionTooltip(
     Boolean(isInMessageList && isReady && isForCurrentMessageList && !hasAttachments),
     getHtml,
-    setHtml,
     getSelectionRange,
     inputRef,
     groupChatMembers,
@@ -781,29 +779,7 @@ const Composer: FC<OwnProps & StateProps> = ({
     };
   }, [chatId, threadId, resetComposerRef, stopRecordingVoiceRef]);
 
-  const showCustomEmojiPremiumNotification = useLastCallback(() => {
-    const notificationNumber = customEmojiNotificationNumber.current;
-    if (!notificationNumber) {
-      showNotification({
-        message: lang('UnlockPremiumEmojiHint'),
-        action: {
-          action: 'openPremiumModal',
-          payload: { initialSection: 'animated_emoji' },
-        },
-        actionText: lang('PremiumMore'),
-      });
-    } else {
-      showNotification({
-        message: lang('UnlockPremiumEmojiHint2'),
-        action: {
-          action: 'openChat',
-          payload: { id: currentUserId, shouldReplaceHistory: true },
-        },
-        actionText: lang('Open'),
-      });
-    }
-    customEmojiNotificationNumber.current = Number(!notificationNumber);
-  });
+  const showCustomEmojiPremiumNotification = useShowCustomEmojiPremiumNotification();
 
   const mainButtonState = useDerivedState(() => {
     if (!isInputHasFocus && onForward && !(getHtml() && !hasAttachments)) {
@@ -857,6 +833,7 @@ const Composer: FC<OwnProps & StateProps> = ({
   }, [chatId, handleStoryPickerContextMenuHide, isReactionPickerOpen, storyId, storyReactionPickerAnchor]);
 
   useClipboardPaste(
+    editableInputId,
     isForCurrentMessageList || isInStoryViewer,
     insertFormattedTextAndUpdateCursor,
     handleSetAttachments,
@@ -1363,7 +1340,8 @@ const Composer: FC<OwnProps & StateProps> = ({
       }
     }
 
-    setHtml(deleteLastCharacterOutsideSelection(getHtml()));
+    document.getElementById(EDITABLE_INPUT_ID)?.focus();
+    document.execCommand('delete', false);
   });
 
   const removeSymbolAttachmentModal = useLastCallback(() => {
@@ -1642,6 +1620,8 @@ const Composer: FC<OwnProps & StateProps> = ({
         canShowCustomSendMenu={canShowCustomSendMenu}
         attachments={attachments}
         getHtml={getHtml}
+        htmlOverwrite={htmlOverwrite}
+        overwrite={overwrite}
         isReady={isReady}
         shouldSuggestCompression={shouldSuggestCompression}
         shouldForceCompression={shouldForceCompression}
@@ -1838,6 +1818,8 @@ const Composer: FC<OwnProps & StateProps> = ({
             isReady={isReady}
             isActive={!hasAttachments}
             getHtml={getHtml}
+            overwrite={overwrite}
+            htmlOverwrite={htmlOverwrite}
             placeholder={
               activeVoiceRecording && windowWidth <= SCREEN_WIDTH_TO_HIDE_PLACEHOLDER
                 ? ''
@@ -1852,12 +1834,13 @@ const Composer: FC<OwnProps & StateProps> = ({
             noFocusInterception={hasAttachments}
             shouldSuppressFocus={isMobile && isSymbolMenuOpen}
             shouldSuppressTextFormatter={isEmojiTooltipOpen || isMentionTooltipOpen || isInlineBotTooltipOpen}
-            onUpdate={setHtml}
+            onUpdate={originalSetHtml}
             onSend={onSend}
             onSuppressedFocus={closeSymbolMenu}
             onFocus={markInputHasFocus}
             onBlur={unmarkInputHasFocus}
             isNeedPremium={isNeedPremium}
+            cannotInsertHtml={isComposerBlocked}
           />
           {isInMessageList && (
             <>

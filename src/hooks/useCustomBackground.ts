@@ -3,13 +3,18 @@ import { getActions } from '../global';
 
 import type { ThemeKey } from '../types';
 
-import { CUSTOM_BG_CACHE_NAME, DARK_THEME_PATTERN_COLOR, DEFAULT_PATTERN_COLOR } from '../config';
+import {
+  CUSTOM_BG_CACHE_NAME,
+  DARK_THEME_PATTERN_COLOR,
+  DEFAULT_PATTERN_COLOR,
+} from '../config';
 import * as cacheApi from '../util/cacheApi';
 import { preloadImage } from '../util/files';
 
 const useCustomBackground = (theme: ThemeKey, settingValue?: string) => {
   const { setThemeSettings } = getActions();
   const [value, setValue] = useState(settingValue);
+  const [isSvg, setIsSvg] = useState(false);
 
   useEffect(() => {
     if (!settingValue) {
@@ -25,6 +30,7 @@ const useCustomBackground = (theme: ThemeKey, settingValue?: string) => {
           preloadImage(url)
             .then(() => {
               setValue(`url(${url})`);
+              setIsSvg(blob.type.includes('svg'));
             });
         })
         .catch(() => {
@@ -39,7 +45,7 @@ const useCustomBackground = (theme: ThemeKey, settingValue?: string) => {
     }
   }, [settingValue, theme]);
 
-  return settingValue ? value : undefined;
+  return [settingValue ? value : undefined, isSvg] as [string, boolean];
 };
 
 export default useCustomBackground;

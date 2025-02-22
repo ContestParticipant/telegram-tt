@@ -5,7 +5,9 @@ import arePropsShallowEqual, { logUnequalProps } from '../../util/arePropsShallo
 import { handleError } from '../../util/handleError';
 import { orderBy } from '../../util/iteratees';
 import { throttleWithTickEnd } from '../../util/schedulers';
-import React, { DEBUG_resolveComponentName, getIsHeavyAnimating, useUnmountCleanup } from './teact';
+import React, {
+  DEBUG_resolveComponentName, getIsHeavyAnimating, useState, useUnmountCleanup,
+} from './teact';
 
 import useForceUpdate from '../../hooks/useForceUpdate';
 import useUniqueId from '../../hooks/useUniqueId';
@@ -45,6 +47,7 @@ type ActionHandler = (
 ) => GlobalState | void | Promise<void>;
 
 type MapStateToProps<OwnProps = undefined> = (global: GlobalState, ownProps: OwnProps) => AnyLiteral;
+type MapStateToPropsNoOwnProps = (global: GlobalState) => AnyLiteral;
 type StickToFirstFn = (value: any) => boolean;
 type ActivationFn<OwnProps = undefined> = (
   global: GlobalState, ownProps: OwnProps, stickToFirst: StickToFirstFn,
@@ -241,6 +244,41 @@ export function removeCallback(cb: Function) {
   }
 }
 
+function useUntypedGlobal(mapStateToProps: MapStateToPropsNoOwnProps = () => ({})) {
+  const id = useUniqueId();
+  const [state, setState] = useState(mapStateToProps(currentGlobal));
+
+  let container = containers.get(id)!;
+  if (!container) {
+    container = {
+      mapStateToProps,
+      ownProps: {},
+      forceUpdate: () => {
+        setState(mapStateToProps(currentGlobal));
+      },
+      mappedProps: {},
+      DEBUG_updates: 0,
+      DEBUG_componentName: `useGlobal_${id}`,
+    };
+
+    containers.set(id, container);
+  }
+
+  useUnmountCleanup(() => {
+    containers.delete(id);
+  });
+
+  if (!container.mappedProps) {
+    try {
+      container.mappedProps = mapStateToProps(currentGlobal);
+    } catch (err: any) {
+      handleError(err);
+    }
+  }
+
+  return state;
+}
+
 export function withUntypedGlobal<OwnProps extends AnyLiteral>(
   mapStateToProps: MapStateToProps<OwnProps> = () => ({}),
   activationFn?: ActivationFn<OwnProps>,
@@ -341,6 +379,7 @@ export function typify<
       mapStateToProps: (global: ProjectGlobalState, ownProps: OwnProps) => AnyLiteral,
       activationFn?: (global: ProjectGlobalState, ownProps: OwnProps, stickToFirst: StickToFirstFn) => boolean,
     ) => (Component: FC) => FC<OwnProps>,
+    useGlobal: useUntypedGlobal as <T extends AnyLiteral>(mapStateToProps: (global: ProjectGlobalState) => T) => T,
   };
 }
 

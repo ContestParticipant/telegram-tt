@@ -8,6 +8,7 @@ import type {
   ApiAvailableReaction, ApiReaction, ApiReactionWithPaid, ApiSticker, ApiStickerSet,
 } from '../../api/types';
 import type { StickerSetOrReactionsSetOrRecent } from '../../types';
+import type { IconName } from '../../types/icons';
 
 import {
   FAVORITE_SYMBOL_SET_ID,
@@ -44,6 +45,7 @@ import { useStickerPickerObservers } from './hooks/useStickerPickerObservers';
 import StickerSetCover from '../middle/composer/StickerSetCover';
 import Button from '../ui/Button';
 import Loading from '../ui/Loading';
+import DefaultFolderIconsRow from './CustomEmojiPicker/DefaultFolderIconsRow';
 import Icon from './icons/Icon';
 import StickerButton from './StickerButton';
 import StickerSet from './StickerSet';
@@ -69,6 +71,8 @@ type OwnProps = {
   onContextMenuOpen?: NoneToVoidFunction;
   onContextMenuClose?: NoneToVoidFunction;
   onContextMenuClick?: NoneToVoidFunction;
+  isFolderIconPicker?: boolean;
+  onFolderIconSelected?: (icon: IconName) => void;
 };
 
 type StateProps = {
@@ -138,6 +142,8 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
   onContextMenuOpen,
   onContextMenuClose,
   onContextMenuClick,
+  isFolderIconPicker,
+  onFolderIconSelected,
 }) => {
   // eslint-disable-next-line no-null/no-null
   const containerRef = useRef<HTMLDivElement>(null);
@@ -253,7 +259,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
           title: lang('RecentStickers'),
         });
       }
-    } else if (recentCustomEmojis?.length) {
+    } else if (recentCustomEmojis?.length && !isFolderIconPicker) {
       defaultSets.push({
         id: RECENT_SYMBOL_SET_ID,
         accessHash: '0',
@@ -278,10 +284,23 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
       ...setsToDisplay,
     ];
   }, [
-    addedCustomEmojiIds, isReactionPicker, isStatusPicker, withDefaultTopicIcons, recentCustomEmojis,
-    customEmojiFeaturedIds, stickerSetsById, topReactions, availableReactions, lang, recentReactions,
-    defaultStatusIconsId, defaultTopicIconsId, isSavedMessages, defaultTagReactions, chatEmojiSetId,
+    isReactionPicker,
+    isSavedMessages,
+    isStatusPicker,
+    withDefaultTopicIcons,
+    recentCustomEmojis,
+    isFolderIconPicker,
+    addedCustomEmojiIds,
+    chatEmojiSetId,
+    customEmojiFeaturedIds,
+    stickerSetsById,
+    defaultTagReactions,
+    lang, topReactions,
     isWithPaidReaction,
+    recentReactions,
+    availableReactions,
+    defaultStatusIconsId,
+    defaultTopicIconsId,
   ]);
 
   const noPopulatedSets = useMemo(() => (
@@ -421,6 +440,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
         onScroll={handleContentScroll}
         className={listClassName}
       >
+        {isFolderIconPicker && <DefaultFolderIconsRow onFolderIconSelected={onFolderIconSelected} />}
         {allSets.map((stickerSet, i) => {
           const shouldHideHeader = stickerSet.id === TOP_SYMBOL_SET_ID
             || (stickerSet.id === RECENT_SYMBOL_SET_ID && (withDefaultTopicIcons || isStatusPicker));

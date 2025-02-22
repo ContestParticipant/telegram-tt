@@ -59,7 +59,6 @@ try {
 export default function useEmojiTooltip(
   isEnabled: boolean,
   getHtml: Signal<string>,
-  setHtml: (html: string) => void,
   inputId = EDITABLE_INPUT_ID,
   recentEmojiIds: string[],
   baseEmojiKeywords?: Record<string, string[]>,
@@ -118,8 +117,13 @@ export default function useEmojiTooltip(
     const atIndex = html.lastIndexOf(':', isForce ? html.lastIndexOf(':') - 1 : undefined);
 
     if (atIndex !== -1) {
-      const emojiHtml = typeof emoji === 'string' ? renderText(emoji, ['emoji_html']) : buildCustomEmojiHtml(emoji);
-      setHtml(`${html.substring(0, atIndex)}${emojiHtml}`);
+      const emojiHtml = typeof emoji === 'string' ? renderText(emoji, ['emoji_html']).join('')
+        : buildCustomEmojiHtml(emoji);
+      const selection = window.getSelection()!;
+      for (let i = 0; i < html.length - atIndex; ++i) {
+        selection.modify('extend', 'backward', 'character');
+      }
+      document.execCommand('insertHTML', false, emojiHtml);
 
       const messageInput = inputId === EDITABLE_INPUT_ID
         ? document.querySelector<HTMLDivElement>(EDITABLE_INPUT_CSS_SELECTOR)!

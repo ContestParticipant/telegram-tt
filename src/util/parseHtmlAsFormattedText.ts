@@ -2,6 +2,9 @@ import type { ApiFormattedText, ApiMessageEntity } from '../api/types';
 import { ApiMessageEntityTypes } from '../api/types';
 
 import { RE_LINK_TEMPLATE } from '../config';
+import { parseCode } from './markdown/parseCode';
+import { parseCommonEntities } from './markdown/parseCommonEntities';
+import { parsePre } from './markdown/parsePre';
 import { IS_EMOJI_SUPPORTED } from './windowEnvironment';
 
 export const ENTITY_CLASS_BY_NODE_NAME: Record<string, ApiMessageEntityTypes> = {
@@ -93,15 +96,18 @@ function parseMarkdown(html: string) {
   parsedHtml = parsedHtml.replace(/<\/div>/g, '');
 
   // Pre
-  parsedHtml = parsedHtml.replace(/^`{3}(.*?)[\n\r](.*?[\n\r]?)`{3}/gms, '<pre data-language="$1">$2</pre>');
-  parsedHtml = parsedHtml.replace(/^`{3}[\n\r]?(.*?)[\n\r]?`{3}/gms, '<pre>$1</pre>');
-  parsedHtml = parsedHtml.replace(/[`]{3}([^`]+)[`]{3}/g, '<pre>$1</pre>');
+  parsedHtml = parsePre(parsedHtml);
 
-  // Code
-  parsedHtml = parsedHtml.replace(
-    /(?!<(code|pre)[^<]*|<\/)[`]{1}([^`\n]+)[`]{1}(?![^<]*<\/(code|pre)>)/g,
-    '<code>$2</code>',
-  );
+  const body = new DOMParser().parseFromString(parsedHtml, 'text/html').body;
+  {
+    const childNodes = body.childNodes;
+
+    for (const node of childNodes) {
+      if (node instanceof Text) {
+        node.replaceWith(document.createRange().createContextualFragment(parseCode(node.data)));
+      }
+    }
+  }
 
   // Custom Emoji markdown tag
   if (!IS_EMOJI_SUPPORTED) {
@@ -113,25 +119,22 @@ function parseMarkdown(html: string) {
     '<img alt="$1" data-document-id="$2">',
   );
 
-  // Other simple markdown
-  parsedHtml = parsedHtml.replace(
-    /(?!<(code|pre)[^<]*|<\/)[*]{2}([^*\n]+)[*]{2}(?![^<]*<\/(code|pre)>)/g,
-    '<b>$2</b>',
-  );
-  parsedHtml = parsedHtml.replace(
-    /(?!<(code|pre)[^<]*|<\/)[_]{2}([^_\n]+)[_]{2}(?![^<]*<\/(code|pre)>)/g,
-    '<i>$2</i>',
-  );
-  parsedHtml = parsedHtml.replace(
-    /(?!<(code|pre)[^<]*|<\/)[~]{2}([^~\n]+)[~]{2}(?![^<]*<\/(code|pre)>)/g,
-    '<s>$2</s>',
-  );
-  parsedHtml = parsedHtml.replace(
-    /(?!<(code|pre)[^<]*|<\/)[|]{2}([^|\n]+)[|]{2}(?![^<]*<\/(code|pre)>)/g,
-    `<span data-entity-type="${ApiMessageEntityTypes.Spoiler}">$2</span>`,
-  );
+  // merge text nodes
+  const childNodes = body.childNodes;
+  for (let i = 0; i < childNodes.length; ++i) {
+    const node = childNodes[i];
+    const nextNode = childNodes[i + 1];
+    if (node instanceof Text) {
+      if (nextNode && nextNode instanceof Text) {
+        node.data += nextNode.data;
+        nextNode.data = '';
+        ++i;
+      }
+      node.replaceWith(document.createRange().createContextualFragment(parseCommonEntities(node.data)));
+    }
+  }
 
-  return parsedHtml;
+  return body.innerHTML;
 }
 
 function parseMarkdownLinks(html: string) {
@@ -205,6 +208,18 @@ function getEntityDataFromNode(
         offset,
         length,
         documentId: (node as HTMLImageElement).dataset.documentId!,
+      },
+    };
+  }
+
+  if (type === ApiMessageEntityTypes.Blockquote) {
+    return {
+      index,
+      entity: {
+        type,
+        offset,
+        length,
+        canCollapse: (node as HTMLQuoteElement).dataset.collapsed === '1',
       },
     };
   }

@@ -26,7 +26,6 @@ const RE_ENDS_ON_EMOJI_IMG = new RegExp(`${EMOJI_IMG_REGEX.source}$`, 'g');
 export default function useCustomEmojiTooltip(
   isEnabled: boolean,
   getHtml: Signal<string>,
-  setHtml: (html: string) => void,
   getSelectionRange: Signal<Range | undefined>,
   inputRef: RefObject<HTMLDivElement>,
   customEmojis?: ApiSticker[],
@@ -82,10 +81,12 @@ export default function useCustomEmojiTooltip(
     const regex = new RegExp(`(${regexText})\\1*$`, '');
     const matched = htmlBeforeSelection.match(regex)![0];
     const count = matched.length / lastEmoji.length;
-    const newHtml = htmlBeforeSelection.replace(regex, buildCustomEmojiHtml(emoji).repeat(count));
-    const htmlAfterSelection = inputEl.innerHTML.substring(htmlBeforeSelection.length);
 
-    setHtml(`${newHtml}${htmlAfterSelection}`);
+    const selection = window.getSelection()!;
+    for (let i = 0; i < count; ++i) {
+      selection.modify('extend', 'backward', 'character');
+    }
+    document.execCommand('insertHTML', false, buildCustomEmojiHtml(emoji).repeat(count));
 
     requestNextMutation(() => {
       focusEditableElement(inputEl, true, true);

@@ -1,0 +1,13 @@
+.mask {
+  -webkit-mask: center repeat-x;
+  -webkit-mask-size: contain;
+  -webkit-mask-image: var(--mask-image);
+  mask-repeat: repeat-x;
+  mask-size: contain;
+  opacity: 0.3;
+}
+
+.cover {
+  -webkit-mask-size: cover;
+  mask-size: cover;
+}

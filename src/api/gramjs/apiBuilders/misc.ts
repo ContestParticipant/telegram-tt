@@ -35,7 +35,7 @@ export function buildApiWallpaper(wallpaper: GramJs.TypeWallPaper): ApiWallpaper
     return undefined;
   }
 
-  const { slug } = wallpaper;
+  const { id, slug } = wallpaper;
 
   const document = buildApiDocument(wallpaper.document);
 
@@ -43,9 +43,35 @@ export function buildApiWallpaper(wallpaper: GramJs.TypeWallPaper): ApiWallpaper
     return undefined;
   }
 
+  const pattern = wallpaper.pattern ?? false;
+  const blur = wallpaper.settings?.blur ?? false;
+  const motion = wallpaper.settings?.motion ?? false;
+  const backgroundColor = wallpaper.settings?.backgroundColor
+    ? numberToHexColor(wallpaper.settings.backgroundColor) : undefined;
+  const secondBackgroundColor = wallpaper.settings?.secondBackgroundColor
+    ? numberToHexColor(wallpaper.settings.secondBackgroundColor) : undefined;
+  const thirdBackgroundColor = wallpaper.settings?.thirdBackgroundColor
+    ? numberToHexColor(wallpaper.settings.thirdBackgroundColor) : undefined;
+  const fourthBackgroundColor = wallpaper.settings?.fourthBackgroundColor
+    ? numberToHexColor(wallpaper.settings.fourthBackgroundColor) : undefined;
+  const intensity = wallpaper.settings?.intensity;
+  const rotation = wallpaper.settings?.rotation;
+  const emoticon = wallpaper.settings?.emoticon;
+
   return {
+    id: id.toString(),
     slug,
+    pattern,
     document,
+    blur,
+    motion,
+    backgroundColor,
+    secondBackgroundColor,
+    thirdBackgroundColor,
+    fourthBackgroundColor,
+    intensity,
+    rotation,
+    emoticon,
   };
 }
 

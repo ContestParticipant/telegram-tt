@@ -1,7 +1,7 @@
 import type {
   ChangeEvent, FormEvent, RefObject,
 } from 'react';
-import type { FC } from '../../lib/teact/teact';
+import type { FC, TeactNode } from '../../lib/teact/teact';
 import React, { memo } from '../../lib/teact/teact';
 
 import buildClassName from '../../util/buildClassName';
@@ -30,6 +30,7 @@ type OwnProps = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  children?: TeactNode;
 };
 
 const InputText: FC<OwnProps> = ({
@@ -54,6 +55,7 @@ const InputText: FC<OwnProps> = ({
   onKeyDown,
   onBlur,
   onPaste,
+  children,
 }) => {
   const lang = useOldLang();
   const labelText = error || success || label;
@@ -95,6 +97,7 @@ const InputText: FC<OwnProps> = ({
       {labelText && (
         <label htmlFor={id}>{labelText}</label>
       )}
+      {children}
     </div>
   );
 };

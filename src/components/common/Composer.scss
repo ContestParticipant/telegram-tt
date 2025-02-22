@@ -1,4 +1,6 @@
+@use "sass:map";
 @use '../../styles/mixins';
+@use "../../styles/icons";
 
 .Composer {
   --base-height: 3.5rem;
@@ -623,17 +625,6 @@
     border-radius: 0 !important;
     box-shadow: none !important;
     caret-color: var(--color-text);
-
-    &.touched {
-      & ~ .placeholder-text {
-        opacity: 0;
-        transform: translateX(1rem);
-      }
-    }
-
-    &.focus-disabled {
-      pointer-events: none;
-    }
   }
 
   .forced-placeholder,
@@ -732,7 +723,6 @@
     margin-bottom: 0;
     line-height: 1.3125;
     padding: calc((var(--base-height, 3.5rem) - var(--composer-text-size, 1rem) * 1.3125) / 2) 0;
-    white-space: pre-wrap;
     height: auto;
 
     @media (max-width: 600px) {
@@ -764,6 +754,21 @@
   .WebPagePreview + .message-input-wrapper & {
     .form-control.overflown {
       margin-top: 0.75rem;
+    }
+  }
+
+  blockquote[data-collapsible='1'] {
+    &::after {
+      font-size: 0.725rem;
+      cursor: pointer;
+    }
+
+    &:not([data-collapsed='1'])::after {
+      content: map.get(icons.$icons-map, "collapse") !important;
+    }
+
+    &[data-collapsed='1']::after {
+      content: map.get(icons.$icons-map, "expand") !important;
     }
   }
 }

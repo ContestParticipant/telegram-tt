@@ -146,6 +146,9 @@ export const EDITABLE_INPUT_CSS_SELECTOR = `.messages-layout .Transition_slide-a
 export const EDITABLE_INPUT_MODAL_CSS_SELECTOR = `#${EDITABLE_INPUT_MODAL_ID}`;
 export const EDITABLE_STORY_INPUT_CSS_SELECTOR = `#${EDITABLE_STORY_INPUT_ID}`;
 
+export const GIFT_MESSAGE_INPUT_ID = 'gift-message-editor';
+export const FOLDER_NAME_INPUT_ID = 'folder-name-editor';
+
 export const CUSTOM_APPENDIX_ATTRIBUTE = 'data-has-custom-appendix';
 export const MESSAGE_CONTENT_CLASS_NAME = 'message-content';
 export const MESSAGE_CONTENT_SELECTOR = '.message-content';
@@ -233,6 +236,7 @@ export const VIDEO_WEBM_TYPE = 'video/webm';
 export const GIF_MIME_TYPE = 'image/gif';
 
 export const LOTTIE_STICKER_MIME_TYPE = 'application/x-tgsticker';
+export const WALLPAPER_PATTERN_MIME_TYPE = 'application/x-tgwallpattern';
 export const VIDEO_STICKER_MIME_TYPE = VIDEO_WEBM_TYPE;
 
 export const SUPPORTED_PHOTO_CONTENT_TYPES = new Set([

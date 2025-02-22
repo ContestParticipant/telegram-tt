@@ -8,6 +8,8 @@ import { selectChat } from '../../global/selectors';
 import { omit, pick } from '../../util/iteratees';
 import useReducer from '../useReducer';
 
+import { extractPotentialCustomEmoji, replaceCustomEmoji } from '../../components/left/main/LeftVerticalFolderList';
+
 export type FolderChatType = {
   icon: IconName;
   title: string;
@@ -109,14 +111,14 @@ export type FoldersState = {
   error?: string;
   folderId?: number;
   chatFilter: string;
-  folder: Omit<ApiChatFolder, 'id' | 'description' | 'emoticon'>;
+  folder: Omit<ApiChatFolder, 'id' | 'description'>;
   includeFilters?: FolderIncludeFilters;
   excludeFilters?: FolderExcludeFilters;
 };
 export type FoldersActions = (
   'setTitle' | 'saveFilters' | 'editFolder' | 'reset' | 'setChatFilter' | 'setIsLoading' | 'setError' |
   'editIncludeFilters' | 'editExcludeFilters' | 'setIncludeFilters' | 'setExcludeFilters' | 'setIsTouched' |
-  'setFolderId' | 'setIsChatlist'
+  'setFolderId' | 'setIsChatlist' | 'setEmoticon' | 'toggleAnimations' | 'setCustomEmoji'
   );
 export type FolderEditDispatch = Dispatch<FoldersState, FoldersActions>;
 
@@ -135,12 +137,44 @@ const foldersReducer: StateReducer<FoldersState, FoldersActions> = (
   action,
 ): FoldersState => {
   switch (action.type) {
-    case 'setTitle':
+    case 'setTitle': {
       return {
         ...state,
         folder: {
           ...state.folder,
-          title: { text: action.payload },
+          title: action.payload,
+        },
+        isTouched: true,
+      };
+    }
+    case 'setEmoticon':
+      return {
+        ...state,
+        folder: {
+          ...state.folder,
+          title: { text: extractPotentialCustomEmoji(state.folder.title)[0].text.trim() },
+          emoticon: action.payload,
+        },
+        isTouched: true,
+      };
+    case 'setCustomEmoji': {
+      const [emoji, documentId] = action.payload;
+      return {
+        ...state,
+        folder: {
+          ...state.folder,
+          emoticon: undefined,
+          title: replaceCustomEmoji(state.folder.title, emoji, documentId),
+        },
+        isTouched: true,
+      };
+    }
+    case 'toggleAnimations':
+      return {
+        ...state,
+        folder: {
+          ...state.folder,
+          noTitleAnimations: state.folder.noTitleAnimations ? undefined : true,
         },
         isTouched: true,
       };

@@ -1,0 +1,62 @@
+.VFolderList-folder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+
+  &-active {
+    color: var(--color-primary);
+    cursor: default;
+  }
+
+  &-title {
+    font-size: 0.75rem;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  &-iconContainer {
+    display: flex;
+    position: relative;
+  }
+
+  .badge {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    font-size: 0.72rem !important;
+    line-height: 1 !important;
+    border: 1.25px solid #121212;
+    z-index: 3;
+    height: auto !important;
+    border-radius: 0.5rem !important;
+    padding: 0.1rem 0.2rem;
+  }
+
+  &-icon {
+    font-size: 36px;
+    line-height: 36px;
+    height: 36px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    --custom-emoji-size: 36px;
+
+    .custom-emoji {
+      min-width: 36px !important;
+      width: 36px !important;
+      height: 36px !important;
+    }
+  }
+
+  &:not(&-active):hover {
+    background-color: #70757933;
+  }
+}

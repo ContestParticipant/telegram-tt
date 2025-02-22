@@ -108,7 +108,7 @@
   display: block;
   width: 100%;
   height: 3rem;
-  padding: calc(0.75rem - var(--border-width)) calc(1.1875rem - var(--border-width)) 0.6875rem;
+  padding: calc(0.75rem - var(--border-width) + 2px) calc(1.1875rem - var(--border-width));
   border: var(--border-width) solid var(--color-borders-input);
   border-radius: var(--border-radius-default);
   color: var(--color-text);
@@ -196,8 +196,6 @@ textarea.form-control {
   resize: none;
   overflow: hidden;
   line-height: 1.3125rem;
-  padding-top: calc(0.8125rem - var(--border-width));
-  padding-bottom: calc(1rem - var(--border-width));
 }
 
 .input-group.password-input {

@@ -67,6 +67,7 @@ export type OwnProps = {
   editingMessage?: ApiMessage;
   messageListType?: MessageListType;
   getHtml: Signal<string>;
+  htmlOverwrite: Signal<string>;
   canShowCustomSendMenu?: boolean;
   isReady: boolean;
   isForMessage?: boolean;
@@ -88,6 +89,7 @@ export type OwnProps = {
   onEmojiSelect: (emoji: string) => void;
   canScheduleUntilOnline?: boolean;
   onSendWhenOnline?: NoneToVoidFunction;
+  overwrite: boolean;
 };
 
 type StateProps = {
@@ -113,6 +115,8 @@ const AttachmentModal: FC<OwnProps & StateProps> = ({
   threadId,
   attachments,
   getHtml,
+  htmlOverwrite,
+  overwrite,
   editingMessage,
   canShowCustomSendMenu,
   captionLimit,
@@ -252,7 +256,6 @@ const AttachmentModal: FC<OwnProps & StateProps> = ({
   } = useMentionTooltip(
     Boolean(isReady && isForCurrentMessageList && renderingIsOpen),
     getHtml,
-    onCaptionUpdate,
     getSelectionRange,
     inputRef,
     groupChatMembers,
@@ -683,6 +686,8 @@ const AttachmentModal: FC<OwnProps & StateProps> = ({
               isReady={isReady}
               isActive={isOpen}
               getHtml={getHtml}
+              htmlOverwrite={htmlOverwrite}
+              overwrite={overwrite}
               editableInputId={EDITABLE_INPUT_MODAL_ID}
               placeholder={lang('AddCaption')}
               onUpdate={onCaptionUpdate}

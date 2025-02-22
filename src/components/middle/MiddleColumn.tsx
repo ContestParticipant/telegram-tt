@@ -84,6 +84,7 @@ import Icon from '../common/icons/Icon';
 import PrivacySettingsNoticeModal from '../common/PrivacySettingsNoticeModal.async';
 import SeenByModal from '../common/SeenByModal.async';
 import UnpinAllMessagesModal from '../common/UnpinAllMessagesModal.async';
+import BackgroundGradient from '../main/BackgroundGradient';
 import Button from '../ui/Button';
 import Transition from '../ui/Transition';
 import ChatLanguageModal from './ChatLanguageModal.async';
@@ -121,7 +122,10 @@ type StateProps = {
   pinnedMessagesCount?: number;
   theme: ThemeKey;
   customBackground?: string;
+  backgroundColors?: string[];
+  backgroundIsMask?: boolean;
   backgroundColor?: string;
+  backgroundOpacity?: number;
   patternColor?: string;
   isLeftColumnShown?: boolean;
   isRightColumnShown?: boolean;
@@ -180,8 +184,11 @@ function MiddleColumn({
   defaultBannedRights,
   pinnedMessagesCount,
   customBackground,
+  backgroundIsMask,
+  backgroundColors,
   theme,
   backgroundColor,
+  backgroundOpacity = 1,
   patternColor,
   isLeftColumnShown,
   isRightColumnShown,
@@ -415,7 +422,7 @@ function MiddleColumn({
     unblockUser({ userId: chatId! });
   });
 
-  const customBackgroundValue = useCustomBackground(theme, customBackground);
+  const [customBackgroundValue, isSvg] = useCustomBackground(theme, customBackground);
 
   const className = buildClassName(
     MASK_IMAGE_DISABLED ? 'mask-image-disabled' : 'mask-image-enabled',
@@ -426,9 +433,10 @@ function MiddleColumn({
     styles.withTransition,
     customBackground && styles.customBgImage,
     backgroundColor && styles.customBgColor,
-    customBackground && isBackgroundBlurred && styles.blurred,
+    customBackground && !isSvg && isBackgroundBlurred && styles.blurred,
     isRightColumnShown && styles.withRightColumn,
     IS_ELECTRON && !(renderingChatId && renderingThreadId) && styles.draggable,
+    isSvg && styles.isSvg,
   );
 
   const messagingDisabledClassName = buildClassName(
@@ -503,8 +511,16 @@ function MiddleColumn({
       )}
       <div
         className={bgClassName}
-        style={customBackgroundValue ? `--custom-background: ${customBackgroundValue}` : undefined}
-      />
+        style={customBackgroundValue && !backgroundIsMask
+          ? `--custom-background: ${customBackgroundValue}; \
+          --background-opacity: ${backgroundIsMask ? 0 : backgroundOpacity}`
+          : backgroundIsMask ? 'background-color: #000' : undefined}
+      >
+        <BackgroundGradient
+          colors={backgroundColors}
+          maskImage={(customBackgroundValue && backgroundIsMask) ? customBackgroundValue : undefined}
+        />
+      </div>
       <div id="middle-column-portals" />
       {Boolean(renderingChatId && renderingThreadId) && (
         <>
@@ -717,7 +733,13 @@ export default memo(withGlobal<OwnProps>(
   (global, { isMobile }): StateProps => {
     const theme = selectTheme(global);
     const {
-      isBlurred: isBackgroundBlurred, background: customBackground, backgroundColor, patternColor,
+      isBlurred: isBackgroundBlurred,
+      background: customBackground,
+      backgroundColors,
+      backgroundIsMask,
+      backgroundColor,
+      backgroundOpacity,
+      patternColor,
     } = global.settings.themes[theme] || {};
 
     const {
@@ -731,7 +753,10 @@ export default memo(withGlobal<OwnProps>(
     const state: StateProps = {
       theme,
       customBackground,
+      backgroundColors,
+      backgroundIsMask,
       backgroundColor,
+      backgroundOpacity,
       patternColor,
       isLeftColumnShown,
       isRightColumnShown: selectIsRightColumnShown(global, isMobile),

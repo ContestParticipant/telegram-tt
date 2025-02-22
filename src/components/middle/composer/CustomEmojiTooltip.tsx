@@ -22,7 +22,7 @@ import Loading from '../../ui/Loading';
 import styles from './CustomEmojiTooltip.module.scss';
 
 export type OwnProps = {
-  chatId: string;
+  chatId?: string;
   isOpen: boolean;
   addRecentCustomEmoji: GlobalActions['addRecentCustomEmoji'];
   onCustomEmojiSelect: (customEmoji: ApiSticker) => void;
@@ -111,7 +111,7 @@ const CustomEmojiTooltip: FC<OwnProps & StateProps> = ({
 export default memo(withGlobal<OwnProps>(
   (global, { chatId }): StateProps => {
     const { stickers: customEmoji } = global.customEmojis.forEmoji;
-    const isSavedMessages = selectIsChatWithSelf(global, chatId);
+    const isSavedMessages = chatId ? selectIsChatWithSelf(global, chatId) : false;
     const isCurrentUserPremium = selectIsCurrentUserPremium(global);
 
     return { customEmoji, isSavedMessages, isCurrentUserPremium };

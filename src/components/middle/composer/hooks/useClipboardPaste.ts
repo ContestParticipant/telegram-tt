@@ -6,6 +6,7 @@ import type { ApiAttachment, ApiFormattedText, ApiMessage } from '../../../../ap
 
 import {
   EDITABLE_INPUT_ID, EDITABLE_INPUT_MODAL_ID, EDITABLE_STORY_INPUT_ID,
+  GIFT_MESSAGE_INPUT_ID,
 } from '../../../../config';
 import { canReplaceMessageMedia, isUploadingFileSticker } from '../../../../global/helpers';
 import { containsCustomEmoji, stripCustomEmoji } from '../../../../global/helpers/symbols';
@@ -20,10 +21,16 @@ const TYPE_HTML = 'text/html';
 const DOCUMENT_TYPE_WORD = 'urn:schemas-microsoft-com:office:word';
 const NAMESPACE_PREFIX_WORD = 'xmlns:w';
 
-const VALID_TARGET_IDS = new Set([EDITABLE_INPUT_ID, EDITABLE_INPUT_MODAL_ID, EDITABLE_STORY_INPUT_ID]);
+const VALID_TARGET_IDS = new Set([
+  EDITABLE_INPUT_ID,
+  EDITABLE_INPUT_MODAL_ID,
+  EDITABLE_STORY_INPUT_ID,
+  GIFT_MESSAGE_INPUT_ID,
+]);
 const CLOSEST_CONTENT_EDITABLE_SELECTOR = 'div[contenteditable]';
 
 const useClipboardPaste = (
+  inputId: string,
   isActive: boolean,
   insertTextAndUpdateCursor: (text: ApiFormattedText, inputId?: string) => void,
   setAttachments: StateHookSetter<ApiAttachment[]>,
@@ -46,7 +53,7 @@ const useClipboardPaste = (
       }
 
       const input = (e.target as HTMLElement)?.closest(CLOSEST_CONTENT_EDITABLE_SELECTOR);
-      if (!input || !VALID_TARGET_IDS.has(input.id)) {
+      if (!input || !VALID_TARGET_IDS.has(input.id) || input.id !== inputId) {
         return;
       }
 

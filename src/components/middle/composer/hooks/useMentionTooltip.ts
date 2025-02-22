@@ -31,7 +31,6 @@ try {
 export default function useMentionTooltip(
   isEnabled: boolean,
   getHtml: Signal<string>,
-  setHtml: (html: string) => void,
   getSelectionRange: Signal<Range | undefined>,
   inputRef: RefObject<HTMLDivElement>,
   groupChatMembers?: ApiChatMember[],
@@ -116,9 +115,12 @@ export default function useMentionTooltip(
 
     if (atIndex !== -1) {
       const newHtml = `${fixedHtmlBeforeSelection.substr(0, atIndex)}${htmlToInsert}&nbsp;`;
-      const htmlAfterSelection = cleanWebkitNewLines(inputEl.innerHTML).substring(fixedHtmlBeforeSelection.length);
       const caretPosition = getCaretPosition(inputEl);
-      setHtml(`${newHtml}${htmlAfterSelection}`);
+      const selection = window.getSelection()!;
+      for (let i = 0; i < fixedHtmlBeforeSelection.length - atIndex + 1; ++i) {
+        selection.modify('extend', 'backward', 'character');
+      }
+      document.execCommand('insertHTML', false, newHtml);
 
       requestNextMutation(() => {
         const newCaretPosition = caretPosition + shiftCaretPosition + 1;

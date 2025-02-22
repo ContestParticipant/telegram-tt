@@ -8,6 +8,11 @@
   overflow: hidden;
   background-color: var(--theme-background-color);
 
+  canvas {
+    width: 100%;
+    height: 100%;
+  }
+
   &::before {
     content: "";
     position: absolute;
@@ -31,6 +36,14 @@
   &.customBgImage::before {
     background-image: var(--custom-background) !important;
     transform: scale(1.1);
+    opacity: var(--custom-background-opacity);
+  }
+
+
+  &.customBgImage.isSvg::before {
+    background-size: contain;
+    background-repeat: repeat-x;
+    mix-blend-mode: soft-light;
   }
 
   :global(body:not(.no-page-transitions)) &.withTransition {

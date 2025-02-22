@@ -1,14 +1,11 @@
-import type { ChangeEvent } from 'react';
-import React, {
-  memo, useMemo, useState,
-} from '../../../lib/teact/teact';
+import React, { memo, useMemo, useState } from '../../../lib/teact/teact';
 import { getActions, withGlobal } from '../../../global';
 
-import type { ApiMessage, ApiPeer } from '../../../api/types';
 import type { ThemeKey } from '../../../types';
 import type { GiftOption } from './GiftModal';
+import { type ApiMessage, ApiMessageEntityTypes, type ApiPeer } from '../../../api/types';
 
-import { STARS_CURRENCY_CODE } from '../../../config';
+import { GIFT_MESSAGE_INPUT_ID, STARS_CURRENCY_CODE } from '../../../config';
 import { getPeerTitle } from '../../../global/helpers';
 import { isApiPeerUser } from '../../../global/helpers/peers';
 import { selectPeer, selectTabState, selectTheme } from '../../../global/selectors';
@@ -16,18 +13,21 @@ import buildClassName from '../../../util/buildClassName';
 import buildStyle from '../../../util/buildStyle';
 import { formatCurrency } from '../../../util/formatCurrency';
 import { formatStarsAsIcon } from '../../../util/localization/format';
+import parseHtmlAsFormattedText from '../../../util/parseHtmlAsFormattedText';
 
 import useCustomBackground from '../../../hooks/useCustomBackground';
+import useDerivedState from '../../../hooks/useDerivedState';
 import useLang from '../../../hooks/useLang';
 import useLastCallback from '../../../hooks/useLastCallback';
+import { useEditorState } from '../../common/hooks/useEditorState';
 
 import PremiumProgress from '../../common/PremiumProgress';
 import ActionMessage from '../../middle/ActionMessage';
+import RichTextInput from '../../middle/composer/RichTextInput';
 import Button from '../../ui/Button';
 import Link from '../../ui/Link';
 import ListItem from '../../ui/ListItem';
 import Switcher from '../../ui/Switcher';
-import TextArea from '../../ui/TextArea';
 
 import styles from './GiftComposer.module.scss';
 
@@ -67,7 +67,14 @@ function GiftComposer({
 
   const lang = useLang();
 
-  const [giftMessage, setGiftMessage] = useState<string>('');
+  const {
+    overwrite,
+    htmlOverwrite,
+    originalSetHtml,
+    getHtml,
+  } = useEditorState();
+  const giftMessage = useDerivedState(() => parseHtmlAsFormattedText(getHtml()), [getHtml]);
+
   const [shouldHideName, setShouldHideName] = useState<boolean>(false);
   const [shouldPayForUpgrade, setShouldPayForUpgrade] = useState<boolean>(false);
 
@@ -93,9 +100,7 @@ function GiftComposer({
             amount: gift.amount,
             currency: gift.currency,
             months: gift.months,
-            message: {
-              text: giftMessage,
-            },
+            message: giftMessage,
             translationValues: ['%action_origin%', '%gift_payment_amount%'],
           },
         },
@@ -118,9 +123,7 @@ function GiftComposer({
           amount: gift.stars,
           starGift: {
             type: 'starGift',
-            message: giftMessage?.length ? {
-              text: giftMessage,
-            } : undefined,
+            message: giftMessage.text?.length ? giftMessage : undefined,
             isNameHidden: shouldHideName,
             starsToConvert: gift.starsToConvert,
             canUpgrade: shouldPayForUpgrade || undefined,
@@ -135,10 +138,6 @@ function GiftComposer({
       },
     } satisfies ApiMessage;
   }, [currentUserId, gift, giftMessage, isStarGift, shouldHideName, shouldPayForUpgrade, peerId]);
-
-  const handleGiftMessageChange = useLastCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
-    setGiftMessage(e.target.value);
-  });
 
   const handleShouldHideNameChange = useLastCallback(() => {
     setShouldHideName(!shouldHideName);
@@ -162,7 +161,7 @@ function GiftComposer({
         peerId,
         shouldHideName,
         gift,
-        message: giftMessage ? { text: giftMessage } : undefined,
+        message: giftMessage.text.length ? giftMessage : undefined,
         shouldUpgrade: shouldPayForUpgrade,
       });
       return;
@@ -174,23 +173,31 @@ function GiftComposer({
       currency: gift.currency,
       amount: gift.amount,
       option: gift,
-      message: giftMessage ? { text: giftMessage } : undefined,
+      message: giftMessage.text.length ? giftMessage : undefined,
     });
   });
 
   function renderOptionsSection() {
-    const symbolsLeft = captionLimit ? captionLimit - giftMessage.length : undefined;
+    const symbolsLeft = captionLimit ? captionLimit - giftMessage.text.length : undefined;
 
     const title = getPeerTitle(lang, peer!)!;
     return (
       <div className={styles.optionsSection}>
-        <TextArea
+        <RichTextInput
+          inputId={GIFT_MESSAGE_INPUT_ID}
+          isActive
+          isReady
+          getHtml={getHtml}
+          customEmojiPrefix="gift-custom-emoji-"
+          htmlOverwrite={htmlOverwrite}
+          onUpdate={originalSetHtml}
+          overwrite={overwrite}
           className={styles.messageInput}
-          onChange={handleGiftMessageChange}
-          value={giftMessage}
+          limitIndicator={symbolsLeft && symbolsLeft < LIMIT_DISPLAY_THRESHOLD ? symbolsLeft.toString() : undefined}
+          singleLine
           label={lang('GiftMessagePlaceholder')}
-          maxLength={captionLimit}
-          maxLengthIndicator={symbolsLeft && symbolsLeft < LIMIT_DISPLAY_THRESHOLD ? symbolsLeft.toString() : undefined}
+          disabledEntities={[ApiMessageEntityTypes.Blockquote, ApiMessageEntityTypes.Url]}
+          canUseEmojiTooltip
         />
 
         {isStarGift && gift.upgradeStars && (

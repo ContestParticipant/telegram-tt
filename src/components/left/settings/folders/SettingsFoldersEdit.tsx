@@ -1,36 +1,52 @@
 import type { FC } from '../../../../lib/teact/teact';
 import React, {
-  memo, useCallback, useEffect, useMemo, useState,
+  memo, useCallback, useEffect, useMemo, useRef, useState,
 } from '../../../../lib/teact/teact';
 import { getActions, getGlobal, withGlobal } from '../../../../global';
 
-import type { ApiChatlistExportedInvite } from '../../../../api/types';
 import type {
   FolderEditDispatch,
   FoldersState,
 } from '../../../../hooks/reducers/useFoldersReducer';
+import {
+  type ApiChatFolder,
+  type ApiChatlistExportedInvite,
+  ApiMessageEntityTypes,
+  type ApiSticker,
+} from '../../../../api/types';
 
-import { STICKER_SIZE_FOLDER_SETTINGS } from '../../../../config';
+import { FOLDER_NAME_INPUT_ID, STICKER_SIZE_FOLDER_SETTINGS } from '../../../../config';
 import { isUserId } from '../../../../global/helpers';
-import { selectCanShareFolder } from '../../../../global/selectors';
+import { selectCanShareFolder, selectIsCurrentUserPremium } from '../../../../global/selectors';
 import { selectCurrentLimit } from '../../../../global/selectors/limits';
 import { findIntersectionWithSet } from '../../../../util/iteratees';
 import { MEMO_EMPTY_ARRAY } from '../../../../util/memo';
 import { CUSTOM_PEER_EXCLUDED_CHAT_TYPES, CUSTOM_PEER_INCLUDED_CHAT_TYPES } from '../../../../util/objects/customPeer';
+import parseHtmlAsFormattedText from '../../../../util/parseHtmlAsFormattedText';
 import { LOCAL_TGS_URLS } from '../../../common/helpers/animatedAssets';
+import { getTextWithEntitiesAsHtml } from '../../../common/helpers/renderTextWithEntities';
 
 import { selectChatFilters } from '../../../../hooks/reducers/useFoldersReducer';
+import useDerivedState from '../../../../hooks/useDerivedState';
+import useFlag from '../../../../hooks/useFlag';
 import useHistoryBack from '../../../../hooks/useHistoryBack';
+import useLang from '../../../../hooks/useLang';
 import useOldLang from '../../../../hooks/useOldLang';
+import { useEditorState } from '../../../common/hooks/useEditorState';
 
 import AnimatedIcon from '../../../common/AnimatedIcon';
 import GroupChatInfo from '../../../common/GroupChatInfo';
 import Icon from '../../../common/icons/Icon';
 import PrivateChatInfo from '../../../common/PrivateChatInfo';
+import RichTextInput from '../../../middle/composer/RichTextInput';
+import Button from '../../../ui/Button';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
-import InputText from '../../../ui/InputText';
 import ListItem from '../../../ui/ListItem';
 import Spinner from '../../../ui/Spinner';
+import { extractPotentialCustomEmoji, FolderIcon } from '../../main/LeftVerticalFolderList';
+import FolderIconPickerMenu from './SettingsFoldersEdit/FolderIconPickerMenu';
+
+import './SettingsFoldersEdit.scss';
 
 type OwnProps = {
   state: FoldersState;
@@ -54,6 +70,7 @@ type StateProps = {
   maxInviteLinks: number;
   maxChatLists: number;
   chatListCount: number;
+  isCurrentUserPremium: boolean;
 };
 
 const SUBMIT_TIMEOUT = 500;
@@ -82,12 +99,17 @@ const SettingsFoldersEdit: FC<OwnProps & StateProps> = ({
   maxChatLists,
   chatListCount,
   onSaveFolder,
+  isCurrentUserPremium,
 }) => {
   const {
     loadChatlistInvites,
     openLimitReachedModal,
     showNotification,
+    openPremiumModal,
   } = getActions();
+  // eslint-disable-next-line no-null/no-null
+  const iconPickerButtonRef = useRef<HTMLButtonElement>(null);
+  const [isIconPickerOpen, openIconPicker, closeIconPicker] = useFlag(false);
 
   const isCreating = state.mode === 'create';
   const isEditingChatList = state.folder.isChatList;
@@ -145,16 +167,24 @@ const SettingsFoldersEdit: FC<OwnProps & StateProps> = ({
   ]);
 
   const lang = useOldLang();
+  const newLang = useLang();
 
   useHistoryBack({
     isActive,
     onBack,
   });
 
-  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const { currentTarget } = event;
-    dispatch({ type: 'setTitle', payload: currentTarget.value.trim() });
-  }, [dispatch]);
+  const {
+    overwrite,
+    htmlOverwrite,
+    originalSetHtml,
+    getHtml,
+    setHtml,
+  } = useEditorState(getTextWithEntitiesAsHtml(state.folder.title));
+  const title = useDerivedState(() => parseHtmlAsFormattedText(getHtml()), [getHtml]);
+  useEffect(() => {
+    dispatch({ type: 'setTitle', payload: title });
+  }, [dispatch, title]);
 
   const handleSubmit = useCallback(() => {
     dispatch({ type: 'setIsLoading', payload: true });
@@ -279,6 +309,31 @@ const SettingsFoldersEdit: FC<OwnProps & StateProps> = ({
     );
   }
 
+  const onEmoticonSelected = useCallback((emoticon: string) => {
+    const newState = dispatch({ type: 'setEmoticon', payload: emoticon });
+    setHtml(getTextWithEntitiesAsHtml(newState.folder.title));
+    closeIconPicker();
+  }, [dispatch, setHtml]);
+
+  const toggleAnimations = useCallback(() => {
+    dispatch({ type: 'toggleAnimations' });
+    closeIconPicker();
+  }, [dispatch]);
+
+  const onEmojiStatusSelect = useCallback((sticker: ApiSticker) => {
+    if (!isCurrentUserPremium) {
+      openPremiumModal();
+      return;
+    }
+    const newState = dispatch({ type: 'setCustomEmoji', payload: [sticker.emoji ?? '⬛️', sticker.id] });
+    setHtml(getTextWithEntitiesAsHtml(newState.folder.title));
+  }, [isCurrentUserPremium, dispatch, setHtml]);
+
+  const canToggleAnimations = useMemo(() => {
+    return !!extractPotentialCustomEmoji(state.folder.title)[1];
+  // eslint-disable-next-line react-hooks-static-deps/exhaustive-deps
+  }, [state.folder, state.folder.title, state.folder.title.text]);
+
   return (
     <div className="settings-fab-wrapper">
       <div className="settings-content no-border custom-scroll">
@@ -295,14 +350,53 @@ const SettingsFoldersEdit: FC<OwnProps & StateProps> = ({
               {lang('FilterIncludeInfo')}
             </p>
           )}
-
-          <InputText
-            className="mb-0"
+          <RichTextInput
+            className="settings-folder-name-input"
+            inputId={FOLDER_NAME_INPUT_ID}
+            isActive
+            isReady
+            getHtml={getHtml}
+            customEmojiPrefix="folder-name"
+            htmlOverwrite={htmlOverwrite}
+            onUpdate={originalSetHtml}
+            overwrite={overwrite}
+            singleLine
+            canPlayAnimatedEmojis={!state.folder.noTitleAnimations}
             label={lang('FilterNameHint')}
-            value={state.folder.title.text}
-            onChange={handleChange}
-            error={state.error && state.error === ERROR_NO_TITLE ? ERROR_NO_TITLE : undefined}
-          />
+            disabledEntities={[
+              ApiMessageEntityTypes.Bold,
+              ApiMessageEntityTypes.Code,
+              ApiMessageEntityTypes.Italic,
+              ApiMessageEntityTypes.Pre,
+              ApiMessageEntityTypes.Url,
+              ApiMessageEntityTypes.Underline,
+              ApiMessageEntityTypes.Spoiler,
+              ApiMessageEntityTypes.Blockquote,
+              ApiMessageEntityTypes.Strike,
+            ]}
+            canUseEmojiTooltip
+          >
+            { /* eslint-disable-next-line jsx-a11y/control-has-associated-label */ }
+            <button ref={iconPickerButtonRef} className="FolderIconPicker" onClick={openIconPicker}>
+              <FolderIcon folder={state.folder as ApiChatFolder} />
+            </button>
+            <FolderIconPickerMenu
+              statusButtonRef={iconPickerButtonRef}
+              isOpen={isIconPickerOpen}
+              onEmojiStatusSelect={onEmojiStatusSelect}
+              onFolderEmoticonSelected={onEmoticonSelected}
+              onClose={closeIconPicker}
+            />
+          </RichTextInput>
+          {canToggleAnimations && (
+            <div className="FolderEdit-animation-toggle">
+              <Button isText size="tiny" fluid isRectangular onClick={toggleAnimations}>
+                {state.folder.noTitleAnimations
+                  ? newLang('FilterEnableAnimations')
+                  : newLang('FilterDisableAnimations')}
+              </Button>
+            </div>
+          )}
         </div>
 
         {!isOnlyInvites && (
@@ -408,6 +502,7 @@ export default memo(withGlobal<OwnProps>(
       maxInviteLinks: selectCurrentLimit(global, 'chatlistInvites'),
       maxChatLists: selectCurrentLimit(global, 'chatlistJoined'),
       chatListCount,
+      isCurrentUserPremium: selectIsCurrentUserPremium(global),
     };
   },
 )(SettingsFoldersEdit));
